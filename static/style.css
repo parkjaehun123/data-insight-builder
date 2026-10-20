@@ -1427,3 +1427,269 @@ tr:hover td {
   transform: translateY(-1px);
 }
 
+/* ==============================================================================
+   PWA 다운로드/설치 버튼 및 안내 모달
+   ============================================================================== */
+.btn-pwa-install {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+  animation: pulsePwa 3s infinite ease-in-out;
+}
+
+@keyframes pulsePwa {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.45); }
+}
+
+.btn-pwa-install:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+}
+
+/* iOS Safari 설치 안내 모달 */
+.ios-install-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.ios-modal-card {
+  background: #ffffff;
+  width: 100%;
+  max-width: 400px;
+  border-radius: 18px;
+  padding: 26px 22px;
+  position: relative;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  animation: popInAuth 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-close-ios {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.ios-icon {
+  font-size: 2.4rem;
+  margin-bottom: 12px;
+}
+
+/* ==============================================================================
+   모바일 전용 반응형 최적화 (Mobile Responsive Optimization)
+   ============================================================================== */
+@media (max-width: 768px) {
+  body {
+    padding-bottom: 40px;
+  }
+
+  .app-header {
+    padding: 12px 16px;
+    position: relative;
+  }
+
+  .header-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .logo-area {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .logo-area h1 {
+    font-size: 1.18rem;
+  }
+
+  .subtitle {
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
+  .status-area {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding-top: 6px;
+    border-top: 1px dashed #e2e8f0;
+  }
+
+  .badge {
+    font-size: 0.74rem;
+    padding: 4px 8px;
+  }
+
+  .btn-logout,
+  .btn-pwa-install {
+    padding: 5px 10px;
+    font-size: 0.78rem;
+  }
+
+  .container {
+    padding: 0 12px;
+    margin: 14px auto;
+  }
+
+  .card {
+    padding: 16px 14px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+  }
+
+  .card-header h2 {
+    font-size: 1.15rem;
+  }
+
+  .upload-dropzone {
+    padding: 24px 12px;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .metric-card {
+    padding: 10px 12px;
+  }
+
+  .metric-card .metric-val {
+    font-size: 1.15rem;
+  }
+
+  .metric-card .metric-lbl {
+    font-size: 0.74rem;
+  }
+
+  .nl-query-box {
+    padding: 16px 12px;
+    border-radius: 12px;
+  }
+
+  .nl-input-group {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  #nlQueryInput {
+    font-size: 0.94rem;
+    padding: 12px 14px;
+    width: 100%;
+  }
+
+  #btnSendNlQuery {
+    width: 100%;
+    min-height: 46px;
+    padding: 12px 0;
+    font-size: 0.98rem;
+    border-radius: 10px;
+  }
+
+  .nl-example-chips {
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .nl-example-chips .question-chip {
+    padding: 5px 10px;
+    font-size: 0.76rem;
+    line-height: 1.35;
+  }
+
+  .chart-wrapper {
+    min-height: 290px;
+    height: 330px;
+    max-height: 380px;
+  }
+
+  .table-responsive {
+    -webkit-overflow-scrolling: touch;
+    overflow-x: auto;
+    font-size: 0.8rem;
+  }
+
+  .table-responsive th,
+  .table-responsive td {
+    padding: 6px 10px;
+    white-space: nowrap;
+  }
+
+  .auth-modal-card {
+    padding: 26px 18px 20px;
+    border-radius: 16px;
+  }
+
+  .auth-title {
+    font-size: 1.2rem;
+  }
+
+  .auth-subtitle {
+    font-size: 0.82rem;
+    margin-bottom: 18px;
+  }
+
+  .auth-input {
+    font-size: 0.95rem;
+    padding: 11px 40px 11px 14px;
+  }
+
+  .btn-auth-submit {
+    min-height: 44px;
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .metrics-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .card-header h2 {
+    font-size: 1.05rem;
+  }
+
+  .btn {
+    min-height: 42px;
+  }
+}
+

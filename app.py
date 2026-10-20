@@ -291,6 +291,8 @@ def require_auth():
     # 비인증 접근 허용 화이트리스트
     if (path == "/" or 
         path == "/health" or 
+        path == "/manifest.json" or 
+        path == "/sw.js" or 
         path == "/api/auth-status" or 
         path == "/api/login" or 
         path == "/api/logout" or 
@@ -355,6 +357,21 @@ def logout():
 def index():
     logger.info("[REQUEST] GET /")
     return render_template("index.html")
+
+
+@app.route("/manifest.json")
+def manifest():
+    """PWA 매니페스트 제공"""
+    return app.send_static_file("manifest.json")
+
+
+@app.route("/sw.js")
+def service_worker():
+    """PWA 서비스 워커 제공 (루트 스코프 적용)"""
+    response = app.send_static_file("sw.js")
+    response.headers["Content-Type"] = "application/javascript"
+    response.headers["Service-Worker-Allowed"] = "/"
+    return response
 
 
 @app.route("/health", methods=["GET"])

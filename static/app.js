@@ -37,6 +37,8 @@ window.fetch = async (...args) => {
 document.addEventListener("DOMContentLoaded", () => {
   console.log("[PAGE] 페이지 로드 완료");
   initAuth();
+  registerServiceWorker();
+  setupPwaInstall();
   checkServerHealth();
   setupEventListeners();
   populateManualTools();
@@ -1242,4 +1244,99 @@ async function handleLogout() {
     console.warn("[AUTH] 로그아웃 요청 실패 (무시):", err);
   }
   showAuthOverlay("로그아웃되었습니다. 다시 접속하려면 비밀번호를 입력해 주세요.");
+}
+
+// ==============================================================================
+// 10. PWA (Progressive Web App) 서비스 워커 등록 및 설치 프롬프트 제어
+// ==============================================================================
+let deferredInstallPrompt = null;
+
+function registerServiceWorker() {
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then((reg) => {
+          console.log("[PWA] Service Worker 등록 완료. 스코프:", reg.scope);
+        })
+        .catch((err) => {
+          console.warn("[PWA] Service Worker 등록 생략 또는 실패:", err);
+        });
+    });
+  }
+}
+
+function setupPwaInstall() {
+  const btnInstall = document.getElementById("btnInstallPwa");
+  const iosModal = document.getElementById("iosInstallModal");
+  const btnCloseIos = document.getElementById("btnCloseIosModal");
+  const btnConfirmIos = document.getElementById("btnConfirmIosModal");
+
+  // iOS Safari 환경 감지
+  const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+
+  // 이미 PWA 단독 앱(Standalone) 모드로 실행 중이면 설치 버튼 숨김
+  if (isStandalone) {
+    console.log("[PWA] 이미 독립형 앱으로 실행 중입니다.");
+    if (btnInstall) btnInstall.style.display = "none";
+    return;
+  }
+
+  // 모바일/데스크톱 브라우저의 PWA 설치 이벤트 캐치
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    console.log("[PWA] beforeinstallprompt 준비 완료");
+    if (btnInstall) {
+      btnInstall.style.display = "inline-flex";
+    }
+  });
+
+  // iOS Safari의 경우 홈 화면 추가 안내 버튼 상시 활성화
+  if (isIos && !isStandalone) {
+    if (btnInstall) {
+      btnInstall.style.display = "inline-flex";
+      btnInstall.textContent = "📲 홈 화면 추가";
+    }
+  }
+
+  // PWA 설치 완료 시
+  window.addEventListener("appinstalled", () => {
+    console.log("[PWA] 앱 설치가 성공적으로 완료되었습니다.");
+    deferredInstallPrompt = null;
+    if (btnInstall) btnInstall.style.display = "none";
+  });
+
+  // 설치 버튼 클릭 처리
+  if (btnInstall) {
+    btnInstall.addEventListener("click", async () => {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        const choice = await deferredInstallPrompt.userChoice;
+        console.log("[PWA] 사용자 응답:", choice.outcome);
+        if (choice.outcome === "accepted") {
+          btnInstall.style.display = "none";
+        }
+        deferredInstallPrompt = null;
+      } else if (isIos) {
+        if (iosModal) iosModal.style.display = "flex";
+      } else {
+        // 브라우저 자체 설치 기능 유도
+        alert("브라우저 우측 상단의 '설치' 아이콘(또는 브라우저 메뉴의 '홈 화면에 추가'/'앱으로 설치')을 눌러 설치할 수 있습니다!");
+      }
+    });
+  }
+
+  // iOS 안내 모달 닫기
+  if (btnCloseIos && iosModal) {
+    btnCloseIos.addEventListener("click", () => {
+      iosModal.style.display = "none";
+    });
+  }
+  if (btnConfirmIos && iosModal) {
+    btnConfirmIos.addEventListener("click", () => {
+      iosModal.style.display = "none";
+    });
+  }
 }

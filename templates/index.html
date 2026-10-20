@@ -2,8 +2,20 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
   <title>AI Data Insight Builder</title>
+  
+  <!-- PWA 웹 앱 매니페스트 및 모바일 최적화 메타 태그 -->
+  <meta name="theme-color" content="#2563eb">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="InsightBuilder">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="/static/icons/icon.svg">
+  <link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png">
+
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Marked.js CDN (마크다운 보고서 렌더링용) -->
@@ -60,12 +72,33 @@
       </div>
       <div class="status-area">
         <span id="apiStatusBadge" class="badge badge-warning">서버 상태 확인 중...</span>
+        <button type="button" id="btnInstallPwa" class="btn-pwa-install" style="display: none;" title="홈 화면 또는 PC에 앱으로 다운로드/설치">
+          📲 앱 설치
+        </button>
         <button type="button" id="btnLogout" class="btn-logout" style="display: none;" title="앱 잠금 / 로그아웃">
           🔒 잠금
         </button>
       </div>
     </div>
   </header>
+
+  <!-- iOS Safari 홈 화면 추가 안내 모달 -->
+  <div id="iosInstallModal" class="ios-install-modal" style="display: none;">
+    <div class="ios-modal-card">
+      <button type="button" class="btn-close-ios" id="btnCloseIosModal" aria-label="닫기">✕</button>
+      <div class="ios-icon">📲</div>
+      <h3 style="font-size: 1.15rem; font-weight: 700; color: #1e293b; margin-bottom: 8px;">홈 화면에 앱으로 추가하기</h3>
+      <p style="font-size: 0.88rem; color: #475569; line-height: 1.6; margin-bottom: 12px;">
+        iPhone / iPad Safari 브라우저 하단의 <strong>공유 아이콘 ( ⎙ 또는 ⬆️ )</strong>을 누른 후, 메뉴 목록에서 <strong>'홈 화면에 추가'</strong>를 선택해 주세요.
+      </p>
+      <p style="font-size: 0.82rem; color: #64748b; background: #f1f5f9; padding: 8px 12px; border-radius: 8px;">
+        💡 설치 후 홈 화면 아이콘을 누르면 주소창 없는 전체 화면 네이티브 앱처럼 실행됩니다.
+      </p>
+      <button type="button" class="btn btn-primary" id="btnConfirmIosModal" style="width: 100%; margin-top: 14px; padding: 10px;">
+        알겠습니다 👍
+      </button>
+    </div>
+  </div>
 
   <main class="container">
 
