@@ -43,7 +43,7 @@ GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest").strip()
 FLASK_DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "10"))
 app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_MB * 1024 * 1024
-APP_PASSWORD = os.getenv("APP_PASSWORD", "1234").strip()
+APP_PASSWORD = os.getenv("APP_PASSWORD", "1102").strip()
 
 # 메모리 데이터셋 및 최근 분석 결과 보관용 변수 (디스크 영구 저장 금지)
 current_dataset = None
@@ -291,7 +291,7 @@ def require_auth():
     - 정적 리소스, 메인 HTML 페이지(/), 인증 API, 헬스체크는 비인증 접근을 허용합니다.
     - 데이터 진단(/inspect), 분석 실행(/run), AI 해석(/explain 등) API는 세션 인증 필수 (미인증 시 401 반환).
     """
-    app_pwd = os.getenv("APP_PASSWORD", "1234").strip()
+    app_pwd = os.getenv("APP_PASSWORD", "1102").strip()
     if not app_pwd:
         return None
 
@@ -318,7 +318,7 @@ def require_auth():
 @app.route("/api/auth-status", methods=["GET"])
 def auth_status():
     """현재 세션의 인증 상태 확인 API"""
-    app_pwd = os.getenv("APP_PASSWORD", "1234").strip()
+    app_pwd = os.getenv("APP_PASSWORD", "1102").strip()
     if not app_pwd:
         return jsonify({"authenticated": True, "password_required": False})
 
@@ -332,7 +332,7 @@ def auth_status():
 @app.route("/api/login", methods=["POST"])
 def login():
     """비밀번호 검증 및 세션 생성 API"""
-    app_pwd = os.getenv("APP_PASSWORD", "1234").strip()
+    app_pwd = os.getenv("APP_PASSWORD", "1102").strip()
     if not app_pwd:
         session["authenticated"] = True
         return jsonify({"success": True, "message": "비밀번호가 필요하지 않습니다."})
@@ -387,7 +387,7 @@ def health():
     logger.info("[REQUEST] GET /health")
     api_key = get_gemini_api_key()
     is_key_configured = bool(api_key and api_key != "your_gemini_api_key_here")
-    app_pwd = os.getenv("APP_PASSWORD", "1234").strip()
+    app_pwd = os.getenv("APP_PASSWORD", "1102").strip()
     
     response_data = {
         "status": "ok",

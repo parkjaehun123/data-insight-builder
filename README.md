@@ -14,7 +14,7 @@
 ## 🌐 라이브 데모 (Live Demo)
 
 - **웹 서비스 주소**: [https://data-insight-builder.vercel.app](https://data-insight-builder.vercel.app) *(본인의 Vercel 배포 주소)*
-- **초기 접속 비밀번호**: `1234`
+- **초기 접속 비밀번호**: `1102` *(또는 환경변수로 지정한 비밀번호)*
 
 ---
 
@@ -132,7 +132,7 @@ FLASK_DEBUG=true
 MAX_UPLOAD_MB=10
 
 # 앱 접속 비밀번호 및 세션 암호화 키
-APP_PASSWORD=1234
+APP_PASSWORD=1102
 SECRET_KEY=your_secret_session_key_here
 ```
 
@@ -140,7 +140,7 @@ SECRET_KEY=your_secret_session_key_here
 ```bash
 python app.py
 ```
-브라우저에서 `http://127.0.0.1:5000`으로 접속하여 비밀번호 `1234`를 입력하고 사용합니다.
+브라우저에서 `http://127.0.0.1:5000`으로 접속하여 설정한 비밀번호(`1102`)를 입력하고 사용합니다.
 
 ---
 
@@ -149,7 +149,7 @@ python app.py
 1. **GitHub 저장소 연결**: Vercel 대시보드에서 `parkjaehun123/data-insight-builder` 저장소를 Import합니다.
 2. **환경 변수 등록**: Vercel 프로젝트의 **Settings → Environment Variables**에서 아래 항목을 등록합니다:
    - `GEMINI_API_KEY`: 본인의 Gemini API Key
-   - `APP_PASSWORD`: 원하는 접속 비밀번호 (예: `1234`)
+   - `APP_PASSWORD`: 원하는 접속 비밀번호 (기본값: `1102`)
    - `SECRET_KEY`: 임의의 긴 보안 문자열
 3. **배포(Deploy)**: 코드가 푸시될 때마다 Vercel에서 자동으로 서버리스 앱이 빌드되어 배포됩니다.
 
