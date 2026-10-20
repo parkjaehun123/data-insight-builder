@@ -71,10 +71,7 @@
         <p class="subtitle">공식 통계 CSV 정밀 진단부터 Pandas 계산과 Gemini 해석까지</p>
       </div>
       <div class="status-area">
-        <span id="apiStatusBadge" class="badge badge-warning" style="cursor: pointer;" title="클릭하여 Gemini API Key 직접 등록/확인">서버 상태 확인 중...</span>
-        <button type="button" id="btnOpenApiKeyModal" class="btn-api-key" style="display: none;" title="Gemini API Key 직접 입력">
-          🔑 Key 등록
-        </button>
+        <span id="apiStatusBadge" class="badge badge-warning">서버 상태 확인 중...</span>
         <button type="button" id="btnInstallPwa" class="btn-pwa-install" style="display: none;" title="홈 화면 또는 PC에 앱으로 다운로드/설치">
           📲 앱 설치
         </button>
@@ -84,38 +81,6 @@
       </div>
     </div>
   </header>
-
-  <!-- Gemini API Key 직접 입력/수정 모달 -->
-  <div id="apiKeyModal" class="api-key-modal" style="display: none;">
-    <div class="api-key-modal-card">
-      <button type="button" class="btn-close-modal" id="btnCloseApiKeyModal" aria-label="닫기">✕</button>
-      <div class="modal-icon">🔑</div>
-      <h3 style="font-size: 1.15rem; font-weight: 700; color: #1e293b; margin-bottom: 6px;">Gemini API Key 직접 등록</h3>
-      <p style="font-size: 0.86rem; color: #64748b; line-height: 1.5; margin-bottom: 16px;">
-        Vercel 환경변수 설정이 번거로우실 경우, 여기서 본인의 Gemini API Key를 붙여넣으시면 즉시 AI 분석 기능을 이용하실 수 있습니다.
-      </p>
-      
-      <div style="margin-bottom: 12px;">
-        <input 
-          type="password" 
-          id="customApiKeyInput" 
-          class="auth-input" 
-          placeholder="AIzaSy... 또는 본인의 Gemini API Key 입력"
-          autocomplete="off"
-        >
-      </div>
-
-      <div id="apiKeyModalMsg" style="display: none; margin-bottom: 12px; font-size: 0.85rem; font-weight: 600; padding: 8px 12px; border-radius: 8px;"></div>
-
-      <button type="button" id="btnSaveApiKey" class="btn-auth-submit" style="width: 100%;">
-        💾 저장하고 즉시 연결
-      </button>
-
-      <div style="margin-top: 14px; font-size: 0.78rem; color: #64748b; line-height: 1.4;">
-        <span>💡 무료 API Key 발급: <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="color: #2563eb; font-weight: 600; text-decoration: underline;">Google AI Studio 바로가기</a></span>
-      </div>
-    </div>
-  </div>
 
   <!-- iOS Safari 홈 화면 추가 안내 모달 -->
   <div id="iosInstallModal" class="ios-install-modal" style="display: none;">

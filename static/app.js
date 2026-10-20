@@ -39,7 +39,6 @@ document.addEventListener("DOMContentLoaded", () => {
   initAuth();
   registerServiceWorker();
   setupPwaInstall();
-  setupApiKeyModal();
   checkServerHealth();
   setupEventListeners();
   populateManualTools();
@@ -47,7 +46,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function checkServerHealth() {
   const badge = document.getElementById("apiStatusBadge");
-  const btnApiKey = document.getElementById("btnOpenApiKeyModal");
   try {
     const res = await fetch("/health");
     const data = await res.json();
@@ -55,13 +53,11 @@ async function checkServerHealth() {
       if (data.gemini_api_key_configured) {
         badge.className = "badge badge-success";
         badge.textContent = `🟢 Gemini 연결됨 (${data.gemini_model})`;
-        badge.title = "Gemini API가 성공적으로 연결되었습니다. (클릭 시 키 변경 가능)";
-        if (btnApiKey) btnApiKey.style.display = "none";
+        badge.title = "Gemini API가 정상적으로 연결되었습니다.";
       } else {
         badge.className = "badge badge-warning";
-        badge.textContent = "🟡 API Key 미설정 (클릭하여 입력)";
-        badge.title = "클릭하여 Gemini API Key를 직접 입력하세요.";
-        if (btnApiKey) btnApiKey.style.display = "inline-flex";
+        badge.textContent = "🟡 API Key 미설정 (Vercel 환경변수 확인 필요)";
+        badge.title = "Vercel 대시보드의 Environment Variables에 GEMINI_API_KEY를 등록해 주세요.";
       }
     }
   } catch (err) {
@@ -1344,100 +1340,5 @@ function setupPwaInstall() {
     btnConfirmIos.addEventListener("click", () => {
       iosModal.style.display = "none";
     });
-  }
-}
-
-// ==============================================================================
-// 11. Gemini API Key 직접 등록 모달 관리
-// ==============================================================================
-function setupApiKeyModal() {
-  const modal = document.getElementById("apiKeyModal");
-  const badge = document.getElementById("apiStatusBadge");
-  const btnOpen = document.getElementById("btnOpenApiKeyModal");
-  const btnClose = document.getElementById("btnCloseApiKeyModal");
-  const btnSave = document.getElementById("btnSaveApiKey");
-  const input = document.getElementById("customApiKeyInput");
-  const msgBox = document.getElementById("apiKeyModalMsg");
-
-  function openModal() {
-    if (modal) {
-      modal.style.display = "flex";
-      if (msgBox) msgBox.style.display = "none";
-      if (input) {
-        input.value = "";
-        setTimeout(() => input.focus(), 120);
-      }
-    }
-  }
-
-  function closeModal() {
-    if (modal) modal.style.display = "none";
-  }
-
-  if (badge) badge.addEventListener("click", openModal);
-  if (btnOpen) btnOpen.addEventListener("click", openModal);
-  if (btnClose) btnClose.addEventListener("click", closeModal);
-
-  if (input) {
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        saveApiKey();
-      }
-    });
-  }
-
-  if (btnSave) {
-    btnSave.addEventListener("click", saveApiKey);
-  }
-
-  async function saveApiKey() {
-    const key = input ? input.value.trim() : "";
-    if (!key) {
-      showMsg("Gemini API Key를 입력해 주세요.", false);
-      input?.focus();
-      return;
-    }
-
-    if (btnSave) {
-      btnSave.disabled = true;
-      btnSave.textContent = "저장 중...";
-    }
-
-    try {
-      const res = await fetch("/api/set-api-key", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ api_key: key })
-      });
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        showMsg("✅ API Key가 성공적으로 등록되었습니다!", true);
-        setTimeout(() => {
-          closeModal();
-          checkServerHealth();
-        }, 800);
-      } else {
-        showMsg(data.error || "등록에 실패했습니다. 다시 시도해 주세요.", false);
-      }
-    } catch (err) {
-      console.error("[API_KEY] 키 등록 요청 실패:", err);
-      showMsg("서버 통신 중 문제가 발생했습니다.", false);
-    } finally {
-      if (btnSave) {
-        btnSave.disabled = false;
-        btnSave.textContent = "💾 저장하고 즉시 연결";
-      }
-    }
-  }
-
-  function showMsg(text, isSuccess) {
-    if (!msgBox) return;
-    msgBox.textContent = text;
-    msgBox.style.display = "block";
-    msgBox.style.backgroundColor = isSuccess ? "#f0fdf4" : "#fef2f2";
-    msgBox.style.color = isSuccess ? "#15803d" : "#dc2626";
-    msgBox.style.border = `1px solid ${isSuccess ? "#bbf7d0" : "#fecaca"}`;
   }
 }
