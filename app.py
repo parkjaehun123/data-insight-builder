@@ -31,11 +31,18 @@ app.config["PERMANENT_SESSION_LIFETIME"] = 86400 * 7  # 7일간 세션 유지
 
 def get_gemini_api_key():
     """
-    GEMINI_API_KEY 또는 GOOGLE_API_KEY 환경변수를 가져옵니다.
+    1) 사용자가 웹 화면에서 직접 입력한 세션 키(custom_gemini_api_key) 우선 확인
+    2) GEMINI_API_KEY 또는 GOOGLE_API_KEY 환경변수 확인
     Vercel 배포 시 사용자가 실수로 따옴표를 넣었거나 앞뒤 공백이 있는 경우 안전하게 정제합니다.
     """
+    try:
+        if session and session.get("custom_gemini_api_key"):
+            return session.get("custom_gemini_api_key").strip("\"' ")
+    except Exception:
+        pass
+
     key = os.getenv("GEMINI_API_KEY", "").strip() or os.getenv("GOOGLE_API_KEY", "").strip()
-    return key.strip("\"'")
+    return key.strip("\"' ")
 
 # 환경변수 설정
 GEMINI_API_KEY = get_gemini_api_key()
@@ -304,6 +311,7 @@ def require_auth():
         path == "/api/auth-status" or 
         path == "/api/login" or 
         path == "/api/logout" or 
+        path == "/api/set-api-key" or 
         path.startswith("/static/")):
         return None
 
@@ -359,6 +367,26 @@ def logout():
     session.pop("authenticated", None)
     logger.info("[AUTH] 로그아웃 완료")
     return jsonify({"success": True, "message": "로그아웃되었습니다."})
+
+
+@app.route("/api/set-api-key", methods=["POST"])
+def set_api_key():
+    """
+    사용자가 웹 화면에서 직접 Gemini API Key를 등록할 수 있는 엔드포인트
+    (Vercel 환경변수 설정 대신 브라우저 세션에 안전하게 저장)
+    """
+    data = request.get_json(silent=True) or {}
+    key = str(data.get("api_key", "")).strip("\"' ")
+    if not key:
+        return jsonify({"success": False, "error": "유효한 API Key를 입력해 주세요."}), 400
+
+    session["custom_gemini_api_key"] = key
+    session.permanent = True
+    logger.info("[AUTH] 사용자 지정 Gemini API Key 세션 저장 완료")
+    return jsonify({
+        "success": True,
+        "message": "Gemini API Key가 성공적으로 등록되었습니다."
+    })
 
 
 @app.route("/")
