@@ -6,7 +6,7 @@ import json
 import time
 import logging
 import pandas as pd
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, session
 from dotenv import load_dotenv
 
 # 도구 카탈로그 및 함수 임포트
@@ -25,12 +25,17 @@ logger = logging.getLogger("data-insight-builder")
 
 app = Flask(__name__)
 
+# 세션 및 보안 설정 (접속 비밀번호 인증용)
+app.secret_key = os.getenv("SECRET_KEY", "data-insight-builder-secure-session-key-2026")
+app.config["PERMANENT_SESSION_LIFETIME"] = 86400 * 7  # 7일간 세션 유지
+
 # 환경변수 설정
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest").strip()
 FLASK_DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "10"))
 app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_MB * 1024 * 1024
+APP_PASSWORD = os.getenv("APP_PASSWORD", "1234").strip()
 
 # 메모리 데이터셋 및 최근 분석 결과 보관용 변수 (디스크 영구 저장 금지)
 current_dataset = None
@@ -271,6 +276,81 @@ def diagnose_dataframe(df, skiprows=0):
     })
 
 
+@app.before_request
+def require_auth():
+    """
+    모든 요청에 대해 접속 비밀번호 인증 여부를 검사합니다.
+    - 정적 리소스, 메인 HTML 페이지(/), 인증 API, 헬스체크는 비인증 접근을 허용합니다.
+    - 데이터 진단(/inspect), 분석 실행(/run), AI 해석(/explain 등) API는 세션 인증 필수 (미인증 시 401 반환).
+    """
+    app_pwd = os.getenv("APP_PASSWORD", "1234").strip()
+    if not app_pwd:
+        return None
+
+    path = request.path
+    # 비인증 접근 허용 화이트리스트
+    if (path == "/" or 
+        path == "/health" or 
+        path == "/api/auth-status" or 
+        path == "/api/login" or 
+        path == "/api/logout" or 
+        path.startswith("/static/")):
+        return None
+
+    if not session.get("authenticated"):
+        logger.warning(f"[AUTH] 미인증 요청 차단: path={path}")
+        return jsonify({
+            "error": "로그인이 필요합니다. 앱 접속 비밀번호를 먼저 입력해 주세요.",
+            "auth_required": True
+        }), 401
+
+
+@app.route("/api/auth-status", methods=["GET"])
+def auth_status():
+    """현재 세션의 인증 상태 확인 API"""
+    app_pwd = os.getenv("APP_PASSWORD", "1234").strip()
+    if not app_pwd:
+        return jsonify({"authenticated": True, "password_required": False})
+
+    is_authenticated = bool(session.get("authenticated"))
+    return jsonify({
+        "authenticated": is_authenticated,
+        "password_required": True
+    })
+
+
+@app.route("/api/login", methods=["POST"])
+def login():
+    """비밀번호 검증 및 세션 생성 API"""
+    app_pwd = os.getenv("APP_PASSWORD", "1234").strip()
+    if not app_pwd:
+        session["authenticated"] = True
+        return jsonify({"success": True, "message": "비밀번호가 필요하지 않습니다."})
+
+    data = request.get_json(silent=True) or {}
+    pwd = str(data.get("password", "")).strip()
+
+    if pwd == app_pwd:
+        session["authenticated"] = True
+        session.permanent = True
+        logger.info("[AUTH] 비밀번호 인증 성공")
+        return jsonify({"success": True, "message": "성공적으로 인증되었습니다."})
+    else:
+        logger.warning("[AUTH] 비밀번호 불일치 (인증 실패)")
+        return jsonify({
+            "success": False,
+            "error": "비밀번호가 일치하지 않습니다. 다시 확인해 주세요."
+        }), 401
+
+
+@app.route("/api/logout", methods=["POST"])
+def logout():
+    """세션 제거 (앱 잠금/로그아웃) API"""
+    session.pop("authenticated", None)
+    logger.info("[AUTH] 로그아웃 완료")
+    return jsonify({"success": True, "message": "로그아웃되었습니다."})
+
+
 @app.route("/")
 def index():
     logger.info("[REQUEST] GET /")
@@ -282,12 +362,15 @@ def health():
     logger.info("[REQUEST] GET /health")
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     is_key_configured = bool(api_key and api_key != "your_gemini_api_key_here")
+    app_pwd = os.getenv("APP_PASSWORD", "1234").strip()
     
     response_data = {
         "status": "ok",
         "gemini_api_key_configured": is_key_configured,
         "gemini_model": os.getenv("GEMINI_MODEL", "gemini-flash-latest").strip(),
-        "max_upload_mb": MAX_UPLOAD_MB
+        "max_upload_mb": MAX_UPLOAD_MB,
+        "auth_required": bool(app_pwd),
+        "authenticated": bool(session.get("authenticated")) if app_pwd else True
     }
     logger.info(f"[RESPONSE] status=200 key_configured={is_key_configured}")
     return jsonify(response_data)

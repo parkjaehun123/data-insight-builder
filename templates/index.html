@@ -13,6 +13,44 @@
 </head>
 <body>
 
+  <!-- 앱 접속 비밀번호 인증 모달 오버레이 -->
+  <div id="authOverlay" class="auth-overlay" style="display: none;">
+    <div class="auth-modal-card">
+      <div class="auth-icon-circle">
+        <span class="auth-icon">🔒</span>
+      </div>
+      <h2 class="auth-title">AI Data Insight Builder</h2>
+      <p class="auth-subtitle">안전한 데이터 분석 환경을 위해 접속 비밀번호를 입력해 주세요.</p>
+      
+      <form id="authForm" class="auth-form" onsubmit="return false;">
+        <div class="auth-input-group">
+          <input 
+            type="password" 
+            id="appPasswordInput" 
+            class="auth-input" 
+            placeholder="접속 비밀번호 입력 (기본: 1234)" 
+            autocomplete="current-password"
+            required
+          >
+          <button type="button" id="btnToggleAuthPassword" class="btn-toggle-pwd" title="비밀번호 표시/숨기기" aria-label="비밀번호 표시 전환">
+            👁️
+          </button>
+        </div>
+
+        <div id="authErrorMsg" class="auth-error-msg" style="display: none;"></div>
+
+        <button type="button" id="btnLoginSubmit" class="btn-auth-submit">
+          🚀 앱 접속하기
+        </button>
+      </form>
+
+      <div class="auth-footer-hint">
+        <span>💡 기본 비밀번호: <code>1234</code></span>
+        <span class="auth-hint-sub">(.env 파일 또는 Vercel 환경변수 <code>APP_PASSWORD</code>에서 자유롭게 변경 가능)</span>
+      </div>
+    </div>
+  </div>
+
   <!-- 상단 네비게이션 헤더 -->
   <header class="app-header">
     <div class="header-container">
@@ -22,6 +60,9 @@
       </div>
       <div class="status-area">
         <span id="apiStatusBadge" class="badge badge-warning">서버 상태 확인 중...</span>
+        <button type="button" id="btnLogout" class="btn-logout" style="display: none;" title="앱 잠금 / 로그아웃">
+          🔒 잠금
+        </button>
       </div>
     </div>
   </header>

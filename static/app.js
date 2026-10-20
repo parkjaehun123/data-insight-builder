@@ -12,10 +12,31 @@ let latestReportMarkdown = "";
 let latestNlRecommendation = null;
 
 // ==============================================================================
+// 전역 401(세션 만료/미인증) 인터셉터
+// ==============================================================================
+const _originalFetch = window.fetch;
+window.fetch = async (...args) => {
+  const response = await _originalFetch(...args);
+  if (response.status === 401) {
+    try {
+      const cloned = response.clone();
+      const errData = await cloned.json();
+      if (errData && errData.auth_required) {
+        showAuthOverlay("접속 세션이 만료되었습니다. 다시 비밀번호를 입력해 주세요.");
+      }
+    } catch (e) {
+      // JSON 파싱 실패 시 무시
+    }
+  }
+  return response;
+};
+
+// ==============================================================================
 // 1. 초기화 및 서버 헬스체크
 // ==============================================================================
 document.addEventListener("DOMContentLoaded", () => {
   console.log("[PAGE] 페이지 로드 완료");
+  initAuth();
   checkServerHealth();
   setupEventListeners();
   populateManualTools();
@@ -1061,4 +1082,164 @@ async function handleNlQuery(query) {
     console.error("[ERROR] 자연어 질문 통신 오류:", err);
     alert("서버와 통신하는 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.");
   }
+}
+
+// ==============================================================================
+// 9. 앱 접속 비밀번호 인증 모달 관리 로직
+// ==============================================================================
+async function initAuth() {
+  setupAuthEventListeners();
+  try {
+    const res = await fetch("/api/auth-status");
+    const data = await res.json();
+    if (data.password_required) {
+      if (data.authenticated) {
+        hideAuthOverlay();
+      } else {
+        showAuthOverlay();
+      }
+    } else {
+      hideAuthOverlay();
+    }
+  } catch (err) {
+    console.error("[AUTH] 인증 상태 확인 실패:", err);
+    showAuthOverlay();
+  }
+}
+
+function showAuthOverlay(msg = "") {
+  const overlay = document.getElementById("authOverlay");
+  const input = document.getElementById("appPasswordInput");
+  const errorBox = document.getElementById("authErrorMsg");
+  const btnLogout = document.getElementById("btnLogout");
+
+  if (overlay) overlay.style.display = "flex";
+  if (btnLogout) btnLogout.style.display = "none";
+  if (input) {
+    input.value = "";
+    setTimeout(() => input.focus(), 150);
+  }
+  if (errorBox) {
+    if (msg) {
+      errorBox.textContent = msg;
+      errorBox.style.display = "block";
+    } else {
+      errorBox.style.display = "none";
+    }
+  }
+}
+
+function hideAuthOverlay() {
+  const overlay = document.getElementById("authOverlay");
+  const btnLogout = document.getElementById("btnLogout");
+  const errorBox = document.getElementById("authErrorMsg");
+
+  if (overlay) overlay.style.display = "none";
+  if (btnLogout) btnLogout.style.display = "inline-flex";
+  if (errorBox) errorBox.style.display = "none";
+}
+
+function setupAuthEventListeners() {
+  const input = document.getElementById("appPasswordInput");
+  const btnSubmit = document.getElementById("btnLoginSubmit");
+  const btnToggle = document.getElementById("btnToggleAuthPassword");
+  const btnLogout = document.getElementById("btnLogout");
+
+  if (btnSubmit) {
+    btnSubmit.addEventListener("click", handleLogin);
+  }
+
+  if (input) {
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleLogin();
+      }
+    });
+  }
+
+  if (btnToggle && input) {
+    btnToggle.addEventListener("click", () => {
+      if (input.type === "password") {
+        input.type = "text";
+        btnToggle.textContent = "🙈";
+      } else {
+        input.type = "password";
+        btnToggle.textContent = "👁️";
+      }
+    });
+  }
+
+  if (btnLogout) {
+    btnLogout.addEventListener("click", handleLogout);
+  }
+}
+
+async function handleLogin() {
+  const input = document.getElementById("appPasswordInput");
+  const errorBox = document.getElementById("authErrorMsg");
+  const btnSubmit = document.getElementById("btnLoginSubmit");
+  const pwd = input ? input.value.trim() : "";
+
+  if (!pwd) {
+    if (errorBox) {
+      errorBox.textContent = "접속 비밀번호를 입력해 주세요.";
+      errorBox.style.display = "block";
+      errorBox.classList.remove("shake-anim");
+      void errorBox.offsetWidth;
+      errorBox.classList.add("shake-anim");
+    }
+    input?.focus();
+    return;
+  }
+
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = "인증 확인 중...";
+  }
+
+  try {
+    const res = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: pwd })
+    });
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      hideAuthOverlay();
+      checkServerHealth();
+    } else {
+      if (errorBox) {
+        errorBox.textContent = data.error || "비밀번호가 일치하지 않습니다. 다시 확인해 주세요.";
+        errorBox.style.display = "block";
+        errorBox.classList.remove("shake-anim");
+        void errorBox.offsetWidth;
+        errorBox.classList.add("shake-anim");
+      }
+      if (input) {
+        input.select();
+      }
+    }
+  } catch (err) {
+    console.error("[AUTH] 로그인 요청 오류:", err);
+    if (errorBox) {
+      errorBox.textContent = "서버 통신 중 오류가 발생했습니다.";
+      errorBox.style.display = "block";
+    }
+  } finally {
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = "🚀 앱 접속하기";
+    }
+  }
+}
+
+async function handleLogout() {
+  try {
+    await fetch("/api/logout", { method: "POST" });
+  } catch (err) {
+    console.warn("[AUTH] 로그아웃 요청 실패 (무시):", err);
+  }
+  showAuthOverlay("로그아웃되었습니다. 다시 접속하려면 비밀번호를 입력해 주세요.");
 }
