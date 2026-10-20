@@ -29,8 +29,16 @@ app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "data-insight-builder-secure-session-key-2026")
 app.config["PERMANENT_SESSION_LIFETIME"] = 86400 * 7  # 7일간 세션 유지
 
+def get_gemini_api_key():
+    """
+    GEMINI_API_KEY 또는 GOOGLE_API_KEY 환경변수를 가져옵니다.
+    Vercel 배포 시 사용자가 실수로 따옴표를 넣었거나 앞뒤 공백이 있는 경우 안전하게 정제합니다.
+    """
+    key = os.getenv("GEMINI_API_KEY", "").strip() or os.getenv("GOOGLE_API_KEY", "").strip()
+    return key.strip("\"'")
+
 # 환경변수 설정
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+GEMINI_API_KEY = get_gemini_api_key()
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest").strip()
 FLASK_DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "10"))
@@ -48,7 +56,7 @@ def call_gemini(prompt, is_json=False, preferred_model=None):
     Gemini API를 호출하며, 일시적 부하(503 Service Unavailable / 429) 발생 시
     자동 대기 재시도 및 백업 모델(gemini-flash-lite-latest, gemini-flash-latest, gemini-3.8-flash) 자동 폴백을 수행합니다.
     """
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    api_key = get_gemini_api_key()
     primary_model = preferred_model or os.getenv("GEMINI_MODEL", "gemini-flash-latest").strip()
 
     fallback_pool = [primary_model, "gemini-flash-lite-latest", "gemini-flash-latest", "gemini-3.8-flash"]
@@ -377,7 +385,7 @@ def service_worker():
 @app.route("/health", methods=["GET"])
 def health():
     logger.info("[REQUEST] GET /health")
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    api_key = get_gemini_api_key()
     is_key_configured = bool(api_key and api_key != "your_gemini_api_key_here")
     app_pwd = os.getenv("APP_PASSWORD", "1234").strip()
     
@@ -543,7 +551,7 @@ def suggest():
             "suggestions": suggestions
         })
 
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    api_key = get_gemini_api_key()
     if not api_key or api_key == "your_gemini_api_key_here":
         logger.warning("[ERROR] Gemini API Key 미설정")
         return jsonify({
