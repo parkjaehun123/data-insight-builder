@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Data Insight Builder</title>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Marked.js CDN (마크다운 보고서 렌더링용) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- 커스텀 스타일시트 -->
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <!-- 상단 네비게이션 헤더 -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="logo-area">
+        <h1>📊 AI Data Insight Builder</h1>
+        <p class="subtitle">공식 통계 CSV 정밀 진단부터 Pandas 계산과 Gemini 해석까지</p>
+      </div>
+      <div class="status-area">
+        <span id="apiStatusBadge" class="badge badge-warning">서버 상태 확인 중...</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- 1단계: CSV 파일 업로드 및 상태 진단 -->
+    <section class="card" id="uploadSection">
+      <div class="card-header">
+        <h2>1. CSV 업로드 및 데이터 진단</h2>
+        <span class="step-num">Step 1</span>
+      </div>
+      <div class="card-body">
+        <div class="upload-dropzone" id="dropzone">
+          <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+          <div class="dropzone-content">
+            <span class="upload-icon">📁</span>
+            <p><strong>CSV 파일을 클릭하여 선택</strong>하거나 여기로 끌어다 놓으세요</p>
+            <span class="file-note">(최대 10MB, .csv 형식, 서버 메모리에만 1개 보관)</span>
+          </div>
+        </div>
+        <div id="uploadLoader" class="loader-container" style="display: none;">
+          <div class="spinner"></div>
+          <p>인코딩 순차 시도 및 헤더 줄 자동 감지 중...</p>
+        </div>
+
+        <!-- 진단 결과 표시 영역 -->
+        <div id="diagnosisArea" style="display: none; margin-top: 20px;">
+          <h3 class="section-title">🔍 파일 정밀 진단 결과</h3>
+          
+          <div class="metrics-grid" id="metricsGrid">
+            <!-- 자바스크립트로 메트릭 카드 동적 삽입 -->
+          </div>
+
+          <!-- 경고 메시지 상자 -->
+          <div id="warningsBox" class="alert-box alert-warning" style="display: none;">
+            <h4>⚠️ 감지된 데이터 주의사항</h4>
+            <ul id="warningsList"></ul>
+          </div>
+
+          <!-- 10행 미리보기 아코디언 -->
+          <div class="preview-box">
+            <details>
+              <summary><strong>📋 데이터 원본 미리보기 (첫 10행 확인)</strong></summary>
+              <div class="table-responsive" id="previewTableContainer"></div>
+            </details>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2단계: 분석 도구 선택 및 실행 (AI 제안 또는 수동 설정) -->
+    <section class="card" id="suggestSection" style="display: none;">
+      <div class="card-header">
+        <h2>2. 분석 도구 선택 및 실행</h2>
+        <span class="step-num">Step 2</span>
+      </div>
+      <div class="card-body">
+        <!-- 💡 2.0 AI 자연어 질문 분석창 (추천 단계 전 우선 배치) -->
+        <div class="nl-query-box">
+          <div class="nl-query-header">
+            <h3>💬 데이터에 대해 자연어로 자유롭게 질문하기</h3>
+            <p class="guide-text">
+              원하는 분석을 일상 언어로 질문하면, AI가 데이터에 근거해 설명하고 맞춤형 <strong>시각화 그래프</strong>를 생성합니다.
+            </p>
+          </div>
+
+          <!-- 추천 질문 예시 칩 -->
+          <div class="nl-example-chips" id="nlExampleChips">
+            <span class="chip-label">추천 질문:</span>
+            <button type="button" class="question-chip highlight-chip" data-q="2024년 1-10등까지 순위국가와 대한민국을 함께 비교해줘">
+              ✨ 2024년 1-10등 순위와 대한민국 비교
+            </button>
+            <button type="button" class="question-chip" data-q="대한민국과 주요 선진국의 연도별 인터넷 보급률 변화 추이를 비교해줘">
+              📈 대한민국과 주요국의 연도별 추이 비교
+            </button>
+            <button type="button" class="question-chip" data-q="가장 최근 연도 기준 보급률이 가장 높은 상위 10개국과 하위 10개국을 보여줘">
+              🏆 상위 10개국 vs 하위 10개국 순위
+            </button>
+            <button type="button" class="question-chip" data-q="지난 10년간 보급률이 가장 크게 증가한 국가는 어디야?">
+              🚀 최근 10년간 가장 급격히 성장한 국가
+            </button>
+          </div>
+
+          <!-- 자연어 질문 입력창 -->
+          <div class="nl-input-group">
+            <input type="text" id="nlQueryInput" class="form-input" placeholder="예: 2024년 1-10등까지 순위국가와 대한민국을 함께 비교해줘">
+            <button type="button" id="btnSendNlQuery">
+              🔍 질문 분석하기
+            </button>
+          </div>
+
+          <!-- 로더 -->
+          <div id="nlQueryLoader" class="loader-container" style="display: none; margin-top: 15px;">
+            <div class="spinner"></div>
+            <p>Gemini가 데이터셋을 검토하여 질문에 대한 답변과 맞춤 시각화 계획을 수립하고 있습니다...</p>
+          </div>
+
+          <!-- 자연어 질문 답변 및 시각화 버튼 카드 -->
+          <div id="nlQueryResultCard" class="nl-result-card" style="display: none;">
+            <div class="nl-answer-header">
+              <span class="nl-answer-badge">🤖 AI 맞춤 분석 가이드</span>
+              <span id="nlToolBadge" class="meta-tag">도구 매핑</span>
+            </div>
+            <div id="nlAnswerText" class="markdown-body"></div>
+
+            <!-- 시각화 실행 버튼 상자 -->
+            <div class="nl-viz-action-box">
+              <p>
+                👇 위 질문에 맞춰 <strong>Chart.js 시각화 차트와 정밀 Pandas 계산</strong>을 실행할 수 있습니다:
+              </p>
+              <button type="button" id="btnNlExecuteViz">
+                📊 시각화 그래프 및 분석 실행하기
+              </button>
+            </div>
+
+            <!-- 💡 자연어 질문 바로 아래 인라인 시각화 결과 컨테이너 -->
+            <div id="nlInlineVizArea" class="nl-inline-viz-card" style="display: none; margin-top: 24px; padding-top: 20px; border-top: 2px dashed #bfdbfe;">
+              <div class="nl-inline-viz-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                <h4 style="margin: 0; font-size: 1.18rem; font-weight: 700; color: #1e3a8a; display: flex; align-items: center; gap: 8px;">
+                  <span>📊</span> <span id="nlInlineVizTitle">질문 맞춤 시각화 그래프</span>
+                </h4>
+                <span id="nlInlineChartBadge" class="meta-tag" style="background: #e0e7ff; color: #4338ca; font-weight: 600;">실시간 생성</span>
+              </div>
+
+              <!-- 인라인 로더 -->
+              <div id="nlInlineLoader" class="loader-container" style="display: none; padding: 25px 0;">
+                <div class="spinner"></div>
+                <p style="font-weight: 600; color: #4f46e5;">Pandas가 데이터를 정밀 계산하여 질문 맞춤 차트를 생성하고 있습니다...</p>
+              </div>
+
+              <!-- 인라인 결과 본문 -->
+              <div id="nlInlineContent" style="display: none;">
+                <!-- 메타 정보 요약 뱃지 -->
+                <div class="run-meta-box" id="nlInlineMetaBox">
+                  <span class="meta-tag"><strong>실행 도구:</strong> <span id="nlMetaToolName">-</span></span>
+                  <span class="meta-tag"><strong>기준 시점:</strong> <span id="nlMetaRefPeriod">-</span></span>
+                  <span class="meta-tag"><strong>사용한 행:</strong> <span id="nlMetaUsedRows">-</span></span>
+                  <span class="meta-tag"><strong>제외한 행:</strong> <span id="nlMetaExcludedRows">-</span></span>
+                  <span class="meta-tag"><strong>단위:</strong> <span id="nlMetaUnit">-</span></span>
+                </div>
+                <p class="caution-banner" id="nlResultCautionText" style="display: none;"></p>
+
+                <!-- 차트 캔버스 영역 -->
+                <div class="chart-wrapper" style="margin-top: 16px; min-height: 420px; height: 440px; position: relative;">
+                  <canvas id="nlInlineChartCanvas"></canvas>
+                </div>
+
+                <!-- 계산 상세 수치 표 -->
+                <div class="table-responsive" id="nlInlineTableContainer" style="margin-top: 20px;"></div>
+
+                <!-- 4단계 AI 분석 보고서 작성 연계 배너 -->
+                <div class="nl-report-cta-box" style="margin-top: 22px; padding: 18px 22px; background: linear-gradient(135deg, #eef2ff 0%, #f0fdf4 100%); border-radius: 12px; border: 1.5px solid #c7d2fe; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+                  <div>
+                    <div style="font-weight: 700; color: #3730a3; font-size: 1.02rem;">
+                      📝 이 시각화 결과로 정밀 AI 분석 보고서 작성하기
+                    </div>
+                    <div style="font-size: 0.86rem; color: #4b5563; margin-top: 3px;">
+                      Pandas 실제 계산 수치를 바탕으로 7대 분석 섹션의 상세 종합 보고서를 즉시 작성합니다.
+                    </div>
+                  </div>
+                  <button type="button" id="btnNlTriggerReport" class="btn btn-primary" style="padding: 10px 22px; font-weight: 700; white-space: nowrap;">
+                    🚀 4단계 AI 보고서 바로 작성하기
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; margin: 28px 0; gap: 15px;">
+          <div style="flex: 1; height: 1px; background-color: var(--border);"></div>
+          <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); background: #f1f5f9; padding: 4px 12px; border-radius: 12px;">또는 추천 / 수동 도구 선택</span>
+          <div style="flex: 1; height: 1px; background-color: var(--border);"></div>
+        </div>
+
+        <!-- 분석 모드 전환 탭 -->
+        <div class="tab-buttons">
+          <button type="button" id="tabBtnAi" class="tab-btn active">✨ Gemini AI 자동 제안</button>
+          <button type="button" id="tabBtnManual" class="tab-btn">⚙️ 분석 도구 직접 설정 및 실행</button>
+        </div>
+
+        <!-- 탭 1: AI 제안 영역 -->
+        <div id="aiSuggestTabContent" style="margin-top: 18px;">
+          <p class="guide-text">
+            Gemini가 방금 진단한 데이터 특성(충실도, 권장 연도 등)을 보고 시스템이 실제 계산할 수 있는 도구 12개 중 가장 의미 있는 분석을 제안합니다.
+          </p>
+          <button id="btnGetSuggestions" class="btn btn-primary">
+            ✨ Gemini에게 분석 제안 받기
+          </button>
+
+          <div id="suggestLoader" class="loader-container" style="display: none;">
+            <div class="spinner"></div>
+            <p>Gemini가 도구 카탈로그에서 최적의 분석 시나리오를 구성하고 있습니다...</p>
+          </div>
+
+          <div id="suggestionsContainer" class="suggestions-grid" style="margin-top: 20px;">
+            <!-- AI 추천 카드 동적 삽입 -->
+          </div>
+        </div>
+
+        <!-- 탭 2: 분석 도구 직접 설정 영역 -->
+        <div id="manualToolTabContent" style="display: none; margin-top: 18px;">
+          <div class="manual-config-card">
+            <div class="form-group">
+              <label for="manualToolSelect" class="form-label"><strong>📌 실행할 분석 도구 선택 (12종 카탈로그):</strong></label>
+              <select id="manualToolSelect" class="form-select"></select>
+            </div>
+
+            <!-- 선택 도구 설명 및 차트 안내 배너 -->
+            <div id="manualToolInfoBanner" class="tool-info-banner" style="margin-top: 12px;"></div>
+
+            <!-- 파라미터 입력 폼 (선택한 도구에 맞춰 동적 전환) -->
+            <div class="form-grid" id="manualParamForm" style="margin-top: 16px;">
+              <!-- 1. 기준 연도 -->
+              <div class="form-group" id="groupRefPeriod">
+                <label for="manualRefYear" class="form-label">기준 시점 (연도):</label>
+                <select id="manualRefYear" class="form-select"></select>
+                <small class="form-hint">데이터 충실도 진단에서 권장된 연도가 기본 선택됩니다.</small>
+              </div>
+
+              <!-- 2. 비교 시작 과거 연도 (변화율 분석용) -->
+              <div class="form-group" id="groupBasePeriod" style="display: none;">
+                <label for="manualBaseYear" class="form-label">비교 시작 과거 연도:</label>
+                <select id="manualBaseYear" class="form-select"></select>
+                <small class="form-hint">기준 연도와 비교할 과거 시점입니다.</small>
+              </div>
+
+              <!-- 3. 추출 개수 N (상하위 순위, 변화율용) -->
+              <div class="form-group" id="groupN" style="display: none;">
+                <label for="manualN" class="form-label">순위 개수 (N):</label>
+                <input type="number" id="manualN" class="form-input" value="10" min="3" max="50">
+                <small class="form-hint">상위·하위 각각 몇 개 항목을 추출할지 설정합니다 (3~50).</small>
+              </div>
+
+              <!-- 4. 단일 비교 대상 항목 (한국 vs 전체 비교용) -->
+              <div class="form-group" id="groupTargetItem" style="display: none;">
+                <label for="manualTargetItem" class="form-label">강조 비교 대상 항목명:</label>
+                <input type="text" id="manualTargetItem" class="form-input" value="Korea, Rep." placeholder="예: Korea, Rep.">
+                <div class="quick-chip-container" id="targetItemChips">
+                  <span class="chip-label">빠른 선택:</span>
+                  <button type="button" class="chip-btn" data-val="Korea, Rep.">Korea, Rep.</button>
+                  <button type="button" class="chip-btn" data-val="United States">United States</button>
+                  <button type="button" class="chip-btn" data-val="Japan">Japan</button>
+                  <button type="button" class="chip-btn" data-val="Germany">Germany</button>
+                </div>
+              </div>
+
+              <!-- 5. 시계열 추이 비교 항목 목록 (선 차트용) -->
+              <div class="form-group" id="groupTrendItems" style="display: none;">
+                <label for="manualTrendItems" class="form-label">비교할 항목 목록 (쉼표 구분):</label>
+                <input type="text" id="manualTrendItems" class="form-input" value="Korea, Rep., United States, Japan, World" placeholder="예: Korea, Rep., United States, Japan, World">
+                <small class="form-hint">꺾은선 그래프에 함께 표시할 항목들을 쉼표(,)로 구분해 입력합니다.</small>
+              </div>
+
+              <!-- 6. 분포 구간 개수 (히스토그램용) -->
+              <div class="form-group" id="groupBins" style="display: none;">
+                <label for="manualBins" class="form-label">분포 구간 개수 (Bins):</label>
+                <input type="number" id="manualBins" class="form-input" value="10" min="4" max="30">
+                <small class="form-hint">수치를 몇 개의 구간으로 분류할지 설정합니다.</small>
+              </div>
+
+              <!-- 7. 집계 행 자동 제외 체크박스 -->
+              <div class="form-group full-width" id="groupExcludeAgg">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="manualExcludeAgg" checked>
+                  <span><strong>지역 및 소득 그룹 집계 행(World, OECD, High income 등) 자동 제외</strong> (개별 국가 데이터와의 중복 왜곡 방지를 위해 강력 권장)</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- 수동 실행 버튼 -->
+            <button type="button" id="btnRunManual" class="btn btn-primary" style="margin-top: 18px; width: 100%;">
+              🚀 선택한 설정으로 분석 실행 (Pandas 정밀 계산)
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3단계: Pandas 계산 결과 및 차트 시각화 -->
+    <section class="card" id="resultSection" style="display: none;">
+      <div class="card-header">
+        <h2>3. Pandas 계산 결과 및 시각화</h2>
+        <span class="step-num">Step 3</span>
+      </div>
+      <div class="card-body">
+        <div id="runLoader" class="loader-container" style="display: none;">
+          <div class="spinner"></div>
+          <p>Pandas가 수치를 정밀 계산하고 차트 데이터를 생성하고 있습니다...</p>
+        </div>
+
+        <div id="resultContent" style="display: none;">
+          <!-- 실행 정보 요약 뱃지 -->
+          <div class="run-meta-box">
+            <span class="meta-tag"><strong>실행 도구:</strong> <span id="metaToolName">-</span></span>
+            <span class="meta-tag"><strong>기준 시점:</strong> <span id="metaRefPeriod">-</span></span>
+            <span class="meta-tag"><strong>사용한 행:</strong> <span id="metaUsedRows">-</span></span>
+            <span class="meta-tag"><strong>제외한 행:</strong> <span id="metaExcludedRows">-</span></span>
+            <span class="meta-tag"><strong>단위:</strong> <span id="metaUnit">-</span></span>
+          </div>
+          <p class="caution-banner" id="resultCautionText">⚠️ 주의사항</p>
+
+          <!-- 차트 영역 -->
+          <div class="chart-wrapper">
+            <canvas id="analysisChart"></canvas>
+          </div>
+
+          <!-- 계산 상세 표 -->
+          <div class="table-responsive" id="resultTableContainer" style="margin-top: 25px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4단계: Gemini AI 인사이트 해석 보고서 -->
+    <section class="card" id="explainSection" style="display: none;">
+      <div class="card-header">
+        <h2>4. Gemini 분석 해석 보고서</h2>
+        <span class="step-num">Step 4</span>
+      </div>
+      <div class="card-body">
+        <div class="mode-select-box">
+          <label><strong>보고서 생성 모드 선택:</strong></label>
+          <div class="radio-group">
+            <label class="radio-card active">
+              <input type="radio" name="explainMode" value="B" checked>
+              <strong>모드 B (정식 모드 - 강력 추천)</strong>
+              <span>Pandas가 계산한 숫자만 Gemini에게 전달하여 8대 규칙에 맞게 정확히 해석합니다.</span>
+            </label>
+            <label class="radio-card">
+              <input type="radio" name="explainMode" value="A">
+              <strong>모드 A (비교용 모드)</strong>
+              <span>계산값 없이 파일 요약만 줍니다. AI의 모호한 추측과 환각을 체감해 보는 교육용 모드입니다.</span>
+            </label>
+          </div>
+        </div>
+
+        <div style="margin-top: 15px;">
+          <button id="btnGenerateReport" class="btn btn-success">
+            📝 AI 인사이트 보고서 작성하기
+          </button>
+        </div>
+
+        <div id="explainLoader" class="loader-container" style="display: none;">
+          <div class="spinner"></div>
+          <p>Gemini가 계산 결과를 검토하고 심층 보고서를 작성하고 있습니다...</p>
+        </div>
+
+        <!-- 마크다운 보고서 출력 영역 -->
+        <div id="reportContainer" class="report-box" style="display: none; margin-top: 20px;">
+          <div class="report-header">
+            <span class="report-mode-tag" id="reportModeTag">모드 B 보고서</span>
+            <button id="btnCopyReport" class="btn-copy">📋 본문 복사</button>
+          </div>
+          <div id="reportMarkdownBody" class="markdown-body"></div>
+        </div>
+
+        <!-- 4.1 후속 질문 및 대화 영역 (추천 질문 말풍선 칩 포함) -->
+        <div id="followupSection" class="followup-box" style="display: none; margin-top: 25px;">
+          <div class="followup-header">
+            <h3 style="font-size: 1.08rem; font-weight: 700; color: var(--primary);">💬 분석 결과에 대해 후속 질문하기</h3>
+            <p class="guide-text" style="margin-top: 4px; font-size: 0.85rem;">
+              방금 나온 계산 결과와 보고서 내용 중 더 알고 싶은 점을 질문해 보세요. 추천 말풍선을 클릭하거나 직접 입력할 수 있습니다.
+            </p>
+          </div>
+
+          <!-- 추천 질문 말풍선 칩 -->
+          <div class="suggested-questions-box" style="margin-top: 14px;">
+            <span class="sq-title">💡 클릭 한 번으로 바로 물어보기:</span>
+            <div class="sq-chips" id="sqChipsContainer">
+              <button type="button" class="question-chip highlight-chip" data-q="중학생도 이해할 수 있게 쉽게 설명해줘">
+                🐣 중학생도 이해할 수 있게 쉽게 설명해줘
+              </button>
+              <button type="button" class="question-chip" data-q="이 분석 결과를 실무/보고서용 3줄 핵심 요약으로 정리해줘">
+                📌 실무 보고서용 3줄 핵심 요약으로 정리해줘
+              </button>
+              <button type="button" class="question-chip" data-q="이 데이터 결과에서 주의해야 할 통계적 한계점이나 함정은 무엇인가요?">
+                ⚠️ 통계적 한계점이나 주의할 함정은 무엇인가요?
+              </button>
+              <button type="button" class="question-chip" data-q="이 결과를 바탕으로 다음에 어떤 추가 분석을 연계하면 좋을까요?">
+                🚀 다음에 어떤 추가 분석을 연계하면 좋을까요?
+              </button>
+            </div>
+          </div>
+
+          <!-- 질의응답 대화 기록 영역 -->
+          <div id="chatHistory" class="chat-history" style="margin-top: 16px;"></div>
+
+          <!-- 질문 입력창 -->
+          <div class="followup-input-box" style="margin-top: 14px;">
+            <input type="text" id="followupInput" class="form-input" placeholder="보고서에 대해 궁금한 점을 자유롭게 질문해 보세요 (예: 중학생도 이해할 수 있게 쉽게 설명해줘)">
+            <button type="button" id="btnSendFollowup" class="btn btn-primary" style="white-space: nowrap; padding: 10px 20px;">
+              💬 질문 전송
+            </button>
+          </div>
+
+          <div id="followupLoader" class="loader-container" style="display: none; margin-top: 15px;">
+            <div class="spinner"></div>
+            <p>Gemini가 계산 데이터와 보고서를 검토하여 답변을 작성하고 있습니다...</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="app-footer">
+    <p>AI Data Insight Builder | Education-focused Safe Architecture (Pandas Calculates, Gemini Interprets)</p>
+  </footer>
+
+  <!-- 프론트엔드 메인 로직 -->
+  <script src="/static/app.js"></script>
+</body>
+</html>
